@@ -1,5 +1,4 @@
 # Title: week4.R
-# Course: (2) R Programming
 # Week 4 assignment: hospital data
 # Date: 20 Oct 2017
 
@@ -295,6 +294,7 @@ rankhospital <- function(state, illness, num="best") {
 }
 
 # ---------------------------------------------------------------------------- #
+
 rankall <- function(illness, num="best") {
     ## Read outcome data
     setwd("/Users/valeriehy.lim/Documents/learning/week4")
@@ -341,7 +341,7 @@ rankall <- function(illness, num="best") {
         arrange(Mortality, Name) %>%
         mutate(Position = row_number())
     
-   # Split by state
+    # split by state
     out <- split(out, out$State)
     
     # Return desired result
@@ -351,43 +351,36 @@ rankall <- function(illness, num="best") {
         for (i in seq(2, length(out), 1)){
             print(paste("Table read:", i))
             singlestate <- as.data.frame(out[[i]][`num`,])
-            results <- rbind(results, singlestate)
-        }
+            results <- rbind(results, singlestate)}
     } else {
         if(num=="worst"){
             results <- tail(as.data.frame(out[[1]]),1L)
-            for (i in seq(2, length(b), 1)){
+            for (i in seq(2, length(out), 1)){
                 print(paste("Table read:", i))
-                singlestate <- tail(as.data.frame(b[[i]]),1L)
-                results <- rbind(results, singlestate)
-            }
+                singlestate <- tail(as.data.frame(out[[i]]),1L)
+                results <- rbind(results, singlestate)}
         } else {
-            if(num>nrow(out)){
-                print("NA")
-                break
-            } else {
-                num = num
-                results <- as.data.frame(out[[1]][`num`,])
-                for (i in seq(2, length(out), 1)){
-                    print(paste("Table read:", i))
-                    singlestate <- as.data.frame(out[[i]][`num`,])
-                    results <- rbind(results, singlestate)
-                }
-            }
+        num = num
+        results <- as.data.frame(out[[1]][`num`,])
+        for (i in seq(2, length(out), 1)){
+            print(paste("Table read:", i))
+            singlestate <- as.data.frame(out[[i]][`num`,])
+            results <- rbind(results, singlestate)}
         }
     }
     
-    # Add NAs for states with no results
+    # Add NAs for states with no results, alphabetical order
     realstates <- as.data.frame(unique(subsetdata$State))
     names(realstates) <- "TruState"
     realstates <- arrange(realstates, realstates$TruState)
     results <- cbind(results, realstates)
+    results <- subset(results, select=-c(State)
     return(results)
 }
 
 # ---------------------------------------------------------------------------- #
-
 # Test cases
+
 rankhospital("TX", "heart failure", 4)
 Name State Mortality Position
     1 DETAR HOSPITAL NAVARRO    TX       8.7        4
@@ -398,6 +391,15 @@ Name State Mortality Position
 
 rankhospital("MN", "heart attack", 5000)
     1 NA    
+
+f <- rankall("heart attack", 20)
+head(f)
+
+g <- rankall("pneumonia", "worst")
+tail(g)
+
+h <- rankall("heart failure") # num=best
+head(h, 10)
 
 # ---------------------------------------------------------------------------- #
 
@@ -424,20 +426,38 @@ rankhospital("TX", "pneumonia", 10)
 rankhospital("NY", "heart attack", 7)
 1 BELLEVUE HOSPITAL CENTER    NY      12.6        7
 
+r <- rankall("heart attack", 4)
+as.character(subset(r, state == "HI")$hospital)
+# CASTLE MEDICAL CENTER
 
+
+r <- rankall("pneumonia", "worst")
+as.character(subset(r, state == "NJ")$hospital)
+# BERGEN REGIONAL MEDICAL CENTER
+
+
+r <- rankall("heart failure", 10)
+as.character(subset(r, state == "NV")$hospital)
+# RENOWN SOUTH MEADOWS MEDICAL CENTER
+
+
+# ---------------------------------------------------------------------------- #
 
 ### Questions
-# Referencing variables
+# Referencing variables and arguments
+# Why do these work? 
+
 library(sqldf)
 query <- paste0('SELECT Name, State, ', colname, ' FROM subsetdata WHERE ', 
                 colname, ' NOT LIKE \"NA\" AND STATE LIKE \"', state, 
                 '\" ORDER BY ', colname, ' ASC, Name ASC')
 out <- sqldf(paste(query))
 
-but others like 
+# but others like these don't work: 
 sprintf
 as.symbol
 as.name
 [[]] https://stackoverflow.com/questions/26003574/r-dplyr-mutate-use-dynamic-variable-names
 ` `
-dont work?
+
+?????
