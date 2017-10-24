@@ -295,7 +295,6 @@ rankhospital <- function(state, illness, num="best") {
 }
 
 # ---------------------------------------------------------------------------- #
-
 rankall <- function(illness, num="best") {
     ## Read outcome data
     setwd("/Users/valeriehy.lim/Documents/learning/week4")
@@ -312,19 +311,10 @@ rankall <- function(illness, num="best") {
                             PN = as.numeric(PN))
     
     ## Check that state and outcome are valid
-    realstates <- unique(subsetdata$State)
     realillness <- c("heart attack", "heart failure", "pneumonia")
-    if(!(state %in% realstates)){
-        print("Invalid state.") 
-        break
-    } else {
-        if (!(illness %in% realillness)){
+    if (!(illness %in% realillness)){
             print("Invalid illness.") 
             break
-        } else {
-            # Valid illness, valid state
-            # Continue
-        }
     }
     
     ## Convert illness string to nice string
@@ -338,46 +328,62 @@ rankall <- function(illness, num="best") {
         } 
     }
     
-    ## Arrange hospitals by death rate
+    ## Remove NAs, rank hospitals by death rate
     library(sqldf)
     query <- paste0('SELECT Name, State, ', colname, ' FROM subsetdata WHERE ', 
-                    colname, ' NOT LIKE \"NA\" AND STATE LIKE \"', state, 
-                    '\" ORDER BY ', colname, ' ASC, Name ASC')
+                    colname, ' NOT LIKE \"NA\" ORDER BY ', colname, ' ASC, Name ASC')
     out <- sqldf(paste(query))
     names(out) <- c("Name", "State", "Mortality")
-    
+
     library(dplyr)
     out <- out %>%
-        arrange(State, Mortality) %>%
         group_by(State) %>%
+        arrange(Mortality, Name) %>%
         mutate(Position = row_number())
+    
+   # Split by state
+    out <- split(out, out$State)
     
     # Return desired result
     if(num=="best"){
-        print(out[out$Position=="1",]) 
+        num = 1
+        results <- as.data.frame(out[[1]][`num`,])
+        for (i in seq(2, length(out), 1)){
+            print(paste("Table read:", i))
+            singlestate <- as.data.frame(out[[i]][`num`,])
+            results <- rbind(results, singlestate)
+        }
     } else {
         if(num=="worst"){
-            print("You haven't figured this out.")
+            results <- tail(as.data.frame(out[[1]]),1L)
+            for (i in seq(2, length(b), 1)){
+                print(paste("Table read:", i))
+                singlestate <- tail(as.data.frame(b[[i]]),1L)
+                results <- rbind(results, singlestate)
+            }
         } else {
             if(num>nrow(out)){
                 print("NA")
                 break
             } else {
-                print(out[out$Position==`num`,])
+                num = num
+                results <- as.data.frame(out[[1]][`num`,])
+                for (i in seq(2, length(out), 1)){
+                    print(paste("Table read:", i))
+                    singlestate <- as.data.frame(out[[i]][`num`,])
+                    results <- rbind(results, singlestate)
+                }
             }
         }
     }
-    # end
+    
+    # Add NAs for states with no results
+    realstates <- as.data.frame(unique(subsetdata$State))
+    names(realstates) <- "TruState"
+    realstates <- arrange(realstates, realstates$TruState)
+    results <- cbind(results, realstates)
+    return(results)
 }
-
-rankall("heart attack", "best")
-
-out <- subsetdata %>%
-    arrange(State, HA) %>%
-    group_by(State) %>%
-    mutate(Position = row_number())
-
-out[out$Position=="1",]
 
 # ---------------------------------------------------------------------------- #
 
@@ -385,8 +391,6 @@ out[out$Position=="1",]
 rankhospital("TX", "heart failure", 4)
 Name State Mortality Position
     1 DETAR HOSPITAL NAVARRO    TX       8.7        4
-
-
 
 rankhospital("MD", "heart attack", "worst")
 Name State Mortality Position
@@ -396,10 +400,6 @@ rankhospital("MN", "heart attack", 5000)
     1 NA    
 
 # ---------------------------------------------------------------------------- #
-
-
-
-
 
 ### Quiz cases
 
